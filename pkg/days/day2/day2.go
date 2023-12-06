@@ -54,6 +54,23 @@ func checkGame(game Game, bagContents map[string]int) bool {
 	return true
 }
 
+func getMinimumBagPower(game Game) int {
+	minBag := map[string]int{
+		"blue":  0,
+		"red":   0,
+		"green": 0,
+	}
+	for _, result := range game.Results {
+		for color, amount := range result {
+			if amount > minBag[color] {
+				minBag[color] = amount
+			}
+		}
+	}
+
+	return minBag["blue"] * minBag["red"] * minBag["green"]
+}
+
 func part1() (any, error) {
 	lines, err := inputreader.ReadLines("pkg/days/day2/input/p1.txt")
 	if err != nil {
@@ -78,7 +95,18 @@ func part1() (any, error) {
 }
 
 func part2() (any, error) {
-	return 0, nil
+	lines, err := inputreader.ReadLines("pkg/days/day2/input/p1.txt")
+	if err != nil {
+		return 0, err
+	}
+	games := parseGames(lines)
+
+	total := 0
+	for _, game := range games {
+		total += getMinimumBagPower(game)
+	}
+
+	return total, nil
 }
 
 func Solve() (answer.Answer, error) {
