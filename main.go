@@ -1,15 +1,20 @@
 package main
 
 import (
-	"aoc2023/pkg/days/day1"
+	"aoc2023/pkg/days/day2"
 	"log"
 )
 
 func main() {
-	ans, err := day1.Solve()
+	// d1, err := day1.Solve()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
+
+	d2, err := day2.Solve()
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	ans.Print()
+	d2.Print()
 }

@@ -132,7 +132,7 @@ func searchNumbers(s string, searchWords bool) (int, error) {
 	return numbers, nil
 }
 
-func Part1() (any, error) {
+func part1() (any, error) {
 	lines, err := inputreader.ReadLines("pkg/days/day1/input/p1.txt")
 	if err != nil {
 		return nil, err
@@ -151,7 +151,7 @@ func Part1() (any, error) {
 	return total, nil
 }
 
-func Part2() (any, error) {
+func part2() (any, error) {
 	lines, err := inputreader.ReadLines("pkg/days/day1/input/p1.txt")
 	if err != nil {
 		return nil, err
@@ -171,5 +171,5 @@ func Part2() (any, error) {
 }
 
 func Solve() (answer.Answer, error) {
-	return answer.Solve(Part1, Part2)
+	return answer.Solve(part1, part2)
 }
