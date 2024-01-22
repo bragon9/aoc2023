@@ -11,6 +11,7 @@ type Card struct {
 	CardNum int
 	Winners map[int]struct{}
 	Numbers []int
+	Matches int
 	Score   int
 }
 
@@ -18,6 +19,7 @@ func (c *Card) CountScore() {
 	score := 0
 	for _, number := range c.Numbers {
 		if _, ok := c.Winners[number]; ok {
+			c.Matches++
 			switch score {
 			case 0:
 				score = 1
@@ -78,7 +80,23 @@ func part1() (any, error) {
 }
 
 func part2() (any, error) {
-	return nil, nil
+	lines, err := inputreader.ReadLines("pkg/days/day4/input/p1.txt")
+	if err != nil {
+		return nil, err
+	}
+
+	cards := parseCards(lines)
+
+	total := 0
+	extra_copies := map[int]int{}
+	for i, card := range cards {
+		total += extra_copies[i] + 1
+		for j := 0; j < card.Matches; j++ {
+			extra_copies[i+j+1] += extra_copies[i] + 1
+		}
+	}
+
+	return total, nil
 }
 
 func Solve() (answer.Answer, error) {
