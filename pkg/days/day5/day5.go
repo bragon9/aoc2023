@@ -3,12 +3,16 @@ package day5
 import (
 	"aoc2023/pkg/answer"
 	"aoc2023/pkg/inputreader"
+	"fmt"
 	"math"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 )
+
+const SPVERSION1 = 1
+const SPVERSION2 = 2
 
 type Almanac struct {
 	Seeds                    []int
@@ -32,10 +36,8 @@ func (t *TranslationMap) AddValue(src, rng, dest int) {
 		t.Ranges = []int{0}
 		t.Offset = []int{0}
 	}
-	i := sort.SearchInts(t.Ranges, src)
-	// t.Ranges = append(t.Ranges[:i], append([]int{src, src + rng}, t.Ranges[i:]...)...)
-	// t.Offset = append(t.Offset[:i], append([]int{dest - src, 0}, t.Offset[i:]...)...)
 
+	i := sort.SearchInts(t.Ranges, src)
 	if i < len(t.Ranges) && t.Ranges[i] == src {
 		t.Offset[i] = dest - src
 	} else {
@@ -109,13 +111,39 @@ func (a *Almanac) parseMaps(maps [7][]string) {
 	wg.Wait()
 }
 
-func parseAlmanac(lines []string) Almanac {
-	a := Almanac{}
-
-	seeds := strings.Split(strings.Split(lines[0], ": ")[1], " ")
+func parseSeedsV1(seeds []string) []int {
+	intSeeds := []int{}
 	for _, seed := range seeds {
 		intSeed, _ := strconv.Atoi(seed)
-		a.Seeds = append(a.Seeds, intSeed)
+		intSeeds = append(intSeeds, intSeed)
+	}
+
+	return intSeeds
+}
+
+func parseSeedsV2(seeds []string) []int {
+	intSeeds := []int{}
+	for i := 0; i < len(seeds); i += 2 {
+		startSeed, _ := strconv.Atoi(seeds[i])
+		seedRange, _ := strconv.Atoi(seeds[i+1])
+		for seedNum := startSeed; seedNum < seedRange+startSeed; seedNum += 1 {
+			intSeeds = append(intSeeds, seedNum)
+		}
+	}
+
+	return intSeeds
+}
+
+func parseAlmanac(lines []string, spVersion int) (Almanac, error) {
+	a := Almanac{}
+
+	switch spVersion {
+	case 1:
+		a.Seeds = parseSeedsV1(strings.Split(strings.Split(lines[0], ": ")[1], " "))
+	case 2:
+		a.Seeds = parseSeedsV2(strings.Split(strings.Split(lines[0], ": ")[1], " "))
+	default:
+		return a, fmt.Errorf("unknown spVersion: %v", spVersion)
 	}
 
 	breaks := []int{}
@@ -135,7 +163,7 @@ func parseAlmanac(lines []string) Almanac {
 
 	a.parseMaps(maps)
 
-	return a
+	return a, nil
 }
 
 func translateSeeds(seeds []int, t TranslationMap) []int {
@@ -147,7 +175,7 @@ func translateSeeds(seeds []int, t TranslationMap) []int {
 	return seeds
 }
 
-func (a *Almanac) FindSeedLocations() {
+func (a *Almanac) findSeedLocations() {
 	curr_values := a.Seeds
 	curr_values = translateSeeds(curr_values, a.SeedToSoilMap)
 	curr_values = translateSeeds(curr_values, a.SoilToFertilizerMap)
@@ -159,14 +187,8 @@ func (a *Almanac) FindSeedLocations() {
 	a.Seeds = curr_values
 }
 
-func part1() (any, error) {
-	lines, err := inputreader.ReadLines("pkg/days/day5/input/p1.txt")
-	if err != nil {
-		return nil, err
-	}
-
-	a := parseAlmanac(lines)
-	a.FindSeedLocations()
+func (a *Almanac) GetLowestSeedLocation() int {
+	a.findSeedLocations()
 
 	lowest := int(math.Inf(1))
 	for _, seed := range a.Seeds {
@@ -175,12 +197,35 @@ func part1() (any, error) {
 		}
 	}
 
-	return lowest, nil
+	return lowest
+}
+
+func part1() (any, error) {
+	lines, err := inputreader.ReadLines("pkg/days/day5/input/p1.txt")
+	if err != nil {
+		return nil, err
+	}
+
+	a, err := parseAlmanac(lines, SPVERSION1)
+	if err != nil {
+		return nil, err
+	}
+
+	return a.GetLowestSeedLocation(), nil
 }
 
 func part2() (any, error) {
+	lines, err := inputreader.ReadLines("pkg/days/day5/input/p1.txt")
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	a, err := parseAlmanac(lines, SPVERSION2)
+	if err != nil {
+		return nil, err
+	}
+
+	return a.GetLowestSeedLocation(), nil
 }
 
 func Solve() (answer.Answer, error) {
