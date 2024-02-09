@@ -166,25 +166,22 @@ func parseAlmanac(lines []string, spVersion int) (Almanac, error) {
 	return a, nil
 }
 
-func translateSeeds(seeds []int, t TranslationMap) []int {
-	for i, seed := range seeds {
-		offset := t.GetOffset(seed)
-		seeds[i] += offset
-	}
-
-	return seeds
+func (a *Almanac) findSeedLocation(i int) {
+	seed := a.Seeds[i]
+	seed += a.SeedToSoilMap.GetOffset(seed)
+	seed += a.SoilToFertilizerMap.GetOffset(seed)
+	seed += a.FertilizerToWaterMap.GetOffset(seed)
+	seed += a.WaterToLightMap.GetOffset(seed)
+	seed += a.LightToTemperatureMap.GetOffset(seed)
+	seed += a.TemperatureToHumidityMap.GetOffset(seed)
+	seed += a.HumidityToLocationMap.GetOffset(seed)
+	a.Seeds[i] = seed
 }
 
 func (a *Almanac) findSeedLocations() {
-	curr_values := a.Seeds
-	curr_values = translateSeeds(curr_values, a.SeedToSoilMap)
-	curr_values = translateSeeds(curr_values, a.SoilToFertilizerMap)
-	curr_values = translateSeeds(curr_values, a.FertilizerToWaterMap)
-	curr_values = translateSeeds(curr_values, a.WaterToLightMap)
-	curr_values = translateSeeds(curr_values, a.LightToTemperatureMap)
-	curr_values = translateSeeds(curr_values, a.TemperatureToHumidityMap)
-	curr_values = translateSeeds(curr_values, a.HumidityToLocationMap)
-	a.Seeds = curr_values
+	for i := range len(a.Seeds) {
+		go a.findSeedLocation(i)
+	}
 }
 
 func (a *Almanac) GetLowestSeedLocation() int {
