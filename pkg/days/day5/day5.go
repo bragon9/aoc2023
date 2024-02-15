@@ -3,7 +3,6 @@ package day5
 import (
 	"aoc2023/pkg/answer"
 	"aoc2023/pkg/inputreader"
-	"fmt"
 	"math"
 	"sort"
 	"strconv"
@@ -15,8 +14,7 @@ const SPVERSION1 = 1
 const SPVERSION2 = 2
 
 type Almanac struct {
-	Seeds                    []int
-	SeedLocations            []int
+	Seeds                    []string
 	SeedToSoilMap            TranslationMap
 	SoilToFertilizerMap      TranslationMap
 	FertilizerToWaterMap     TranslationMap
@@ -111,40 +109,10 @@ func (a *Almanac) parseMaps(maps [7][]string) {
 	wg.Wait()
 }
 
-func parseSeedsV1(seeds []string) []int {
-	intSeeds := []int{}
-	for _, seed := range seeds {
-		intSeed, _ := strconv.Atoi(seed)
-		intSeeds = append(intSeeds, intSeed)
-	}
-
-	return intSeeds
-}
-
-func parseSeedsV2(seeds []string) []int {
-	intSeeds := []int{}
-	for i := 0; i < len(seeds); i += 2 {
-		startSeed, _ := strconv.Atoi(seeds[i])
-		seedRange, _ := strconv.Atoi(seeds[i+1])
-		for seedNum := startSeed; seedNum < seedRange+startSeed; seedNum += 1 {
-			intSeeds = append(intSeeds, seedNum)
-		}
-	}
-
-	return intSeeds
-}
-
-func parseAlmanac(lines []string, spVersion int) (Almanac, error) {
+func parseAlmanac(lines []string) (Almanac, error) {
 	a := Almanac{}
 
-	switch spVersion {
-	case 1:
-		a.Seeds = parseSeedsV1(strings.Split(strings.Split(lines[0], ": ")[1], " "))
-	case 2:
-		a.Seeds = parseSeedsV2(strings.Split(strings.Split(lines[0], ": ")[1], " "))
-	default:
-		return a, fmt.Errorf("unknown spVersion: %v", spVersion)
-	}
+	a.Seeds = strings.Split(strings.Split(lines[0], ": ")[1], " ")
 
 	breaks := []int{}
 	for i, line := range lines {
@@ -166,8 +134,8 @@ func parseAlmanac(lines []string, spVersion int) (Almanac, error) {
 	return a, nil
 }
 
-func (a *Almanac) findSeedLocation(i int) {
-	seed := a.Seeds[i]
+func (a *Almanac) findSeedLocation(i int) int {
+	seed := i
 	seed += a.SeedToSoilMap.GetOffset(seed)
 	seed += a.SoilToFertilizerMap.GetOffset(seed)
 	seed += a.FertilizerToWaterMap.GetOffset(seed)
@@ -175,20 +143,53 @@ func (a *Almanac) findSeedLocation(i int) {
 	seed += a.LightToTemperatureMap.GetOffset(seed)
 	seed += a.TemperatureToHumidityMap.GetOffset(seed)
 	seed += a.HumidityToLocationMap.GetOffset(seed)
-	a.Seeds[i] = seed
+	return seed
 }
 
-func (a *Almanac) findSeedLocations() {
-	for i := range len(a.Seeds) {
-		go a.findSeedLocation(i)
-	}
-}
+func (a *Almanac) GetLowestSeedLocationV1() int {
+	c := make(chan int)
 
-func (a *Almanac) GetLowestSeedLocation() int {
-	a.findSeedLocations()
+	go func() {
+		for _, seed := range a.Seeds {
+			intSeed, _ := strconv.Atoi(seed)
+			c <- a.findSeedLocation(intSeed)
+		}
+		close(c)
+	}()
 
 	lowest := int(math.Inf(1))
-	for _, seed := range a.Seeds {
+	for seed := range c {
+		if seed < lowest {
+			lowest = seed
+		}
+	}
+
+	return lowest
+}
+
+func (a *Almanac) GetLowestSeedLocationV2() int {
+	c := make(chan int)
+
+	wg := sync.WaitGroup{}
+
+	go func() {
+		for i := 0; i < len(a.Seeds); i += 2 {
+			startSeed, _ := strconv.Atoi(a.Seeds[i])
+			seedRange, _ := strconv.Atoi(a.Seeds[i+1])
+			wg.Add(1)
+			go func(start, stop int) {
+				for intSeed := start; intSeed < stop; intSeed += 1 {
+					c <- a.findSeedLocation(intSeed)
+				}
+				wg.Done()
+			}(startSeed, seedRange+startSeed)
+		}
+		wg.Wait()
+		close(c)
+	}()
+
+	lowest := int(math.Inf(1))
+	for seed := range c {
 		if seed < lowest {
 			lowest = seed
 		}
@@ -203,12 +204,12 @@ func part1() (any, error) {
 		return nil, err
 	}
 
-	a, err := parseAlmanac(lines, SPVERSION1)
+	a, err := parseAlmanac(lines)
 	if err != nil {
 		return nil, err
 	}
 
-	return a.GetLowestSeedLocation(), nil
+	return a.GetLowestSeedLocationV1(), nil
 }
 
 func part2() (any, error) {
@@ -217,12 +218,12 @@ func part2() (any, error) {
 		return nil, err
 	}
 
-	a, err := parseAlmanac(lines, SPVERSION2)
+	a, err := parseAlmanac(lines)
 	if err != nil {
 		return nil, err
 	}
 
-	return a.GetLowestSeedLocation(), nil
+	return a.GetLowestSeedLocationV2(), nil
 }
 
 func Solve() (answer.Answer, error) {
