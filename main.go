@@ -1,12 +1,12 @@
 package main
 
 import (
-	"aoc2023/pkg/days/day7"
+	"aoc2023/pkg/days/day8"
 	"log"
 )
 
 func main() {
-	ans, err := day7.Solve()
+	ans, err := day8.Solve()
 	if err != nil {
 		log.Fatal(err)
 	}
